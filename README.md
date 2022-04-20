@@ -19,18 +19,3 @@ Simple contract for storing versioned data in TON blockchain.
 ```tlb
 update_config#75636667 new_config:^Cell = UpdateConfigOp;
 ```
-
-
-## **org.ton.config.v0** interface
-### Get methods 
-#### get_owner
-```func
-_ get_owner() method_id {
-    var (owner, _, _) = load_data();
-    return owner;
-}
-```
-### Ops
-```tlb
-update_config#75636667 new_config:^Cell = UpdateConfigOp;
-```
