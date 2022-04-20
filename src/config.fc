@@ -71,3 +71,12 @@ _ get_owner() method_id {
     var (owner, _, _) = load_data();
     return owner;
 }
+
+_ supported_interfaces() method_id {
+    ;; see https://github.com/ton-foundation/specs/blob/main/specs/wtf-0001.md
+    return (
+        123515602279859691144772641439386770278, ;; org.ton.introspection.v0
+        110962071276322029180545142184173740794, ;; org.ton.config.v0
+        198065441704519650679230120614487492355  ;; org.ton.ownable.v0
+    );
+}
