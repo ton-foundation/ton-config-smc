@@ -1,0 +1,73 @@
+(int) equal_slices(slice s1, slice s2) asm "SDEQ";
+
+int error::invalid_message() asm "70 PUSHINT";
+int op::transfer_ownership() asm "0x7472616e PUSHINT";
+int op::update_config() asm "0x75636667 PUSHINT";
+
+int const::ok() asm "0xf09f918d PUSHINT"; 
+
+_ load_data() {
+    var data = get_data().begin_parse();
+    return (
+        data~load_msg_addr(),
+        data~load_uint(32),
+        data~load_ref()
+    );
+}
+
+() store_data(slice owner, int version, cell data) impure {
+    set_data(
+        begin_cell()
+            .store_slice(owner)
+            .store_uint(version, 32)
+            .store_ref(data)
+        .end_cell()
+    );
+}
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+
+    if (flags & 1) { ;; ignore all bounced messages
+        return ();
+    }
+    slice sender_address = cs~load_msg_addr();
+
+    var (owner, version, data_cell) = load_data();
+
+    throw_if(error::invalid_message(), in_msg_body.slice_bits() < 32);
+    throw_unless(error::invalid_message(), equal_slices(owner, sender_address));
+
+    var op = in_msg_body~load_uint(32);
+    if (op == op::transfer_ownership()) {
+        var new_owner = in_msg_body~load_msg_addr();
+        store_data(new_owner, version, data_cell);
+    } elseif (op == op::update_config()) {
+        var new_config_cell = in_msg_body~load_ref();
+        store_data(owner, version + 1, new_config_cell);
+    } else {
+        throw(error::invalid_message());
+    }
+
+    var msg = begin_cell()
+        .store_uint(0x10, 6)
+        .store_slice(sender_address)
+        .store_grams(0)
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_uint(0, 32)
+        .store_uint(const::ok(), 32)
+        .end_cell();
+
+    send_raw_message(msg, 64);
+}
+
+_ get_config() method_id {
+    var (owner, version, config) = load_data();
+    return (version, config);
+}
+
+_ get_owner() method_id {
+    var (owner, _, _) = load_data();
+    return owner;
+}

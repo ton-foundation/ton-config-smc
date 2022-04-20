@@ -1,0 +1,110 @@
+PROGRAM{
+  DECLPROC load_data
+  DECLPROC store_data
+  DECLPROC recv_internal
+  103798 DECLMETHOD get_config
+  80293 DECLMETHOD get_owner
+  load_data PROC:<{
+    // 
+    c4 PUSH	//  _1
+    CTOS	//  data
+    LDMSGADDR	//  _3 data
+    32 LDU	//  _3 _5 data
+    LDREF	//  _3 _5 _15 _14
+    DROP	//  _3 _5 _8
+  }>
+  store_data PROC:<{
+    //  owner version data
+    NEWC	//  owner version data _3
+    s0 s3 XCHG2	//  data version _3 owner
+    STSLICER	//  data version _4
+    32 STU	//  data _6
+    STREF	//  _7
+    ENDC	//  _8
+    c4 POP
+  }>
+  recv_internal PROC:<{
+    //  my_balance msg_value in_msg_full in_msg_body
+    s3 POP
+    NIP	//  in_msg_body in_msg_full
+    CTOS	//  in_msg_body cs
+    4 LDU	//  in_msg_body flags cs
+    SWAP
+    1 PUSHINT	//  in_msg_body cs flags _10=1
+    AND	//  in_msg_body cs _11
+    IFJMP:<{	//  in_msg_body cs
+      2DROP	// 
+    }>	//  in_msg_body cs
+    LDMSGADDR	//  in_msg_body _82 _81
+    DROP	//  in_msg_body sender_address
+    load_data CALLDICT	//  in_msg_body sender_address owner version data_cell
+    70 PUSHINT	//  in_msg_body sender_address owner version data_cell _19
+    s5 PUSH	//  in_msg_body sender_address owner version data_cell _19 in_msg_body
+    SBITS	//  in_msg_body sender_address owner version data_cell _19 _20
+    32 LESSINT	//  in_msg_body sender_address owner version data_cell _19 _22
+    THROWANYIF
+    70 PUSHINT	//  in_msg_body sender_address owner version data_cell _24
+    s3 s4 PUSH2	//  in_msg_body sender_address owner version data_cell _24 owner sender_address
+    SDEQ	//  in_msg_body sender_address owner version data_cell _24 _25
+    THROWANYIFNOT
+    s0 s4 XCHG	//  data_cell sender_address owner version in_msg_body
+    32 LDU	//  data_cell sender_address owner version op in_msg_body
+    0x7472616e PUSHINT	//  data_cell sender_address owner version op in_msg_body _31
+    s2 s(-1) PUXC	//  data_cell sender_address owner version op in_msg_body op _31
+    EQUAL	//  data_cell sender_address owner version op in_msg_body _32
+    IF:<{	//  data_cell sender_address owner version op in_msg_body
+      NIP
+      1 2 BLKDROP2	//  data_cell sender_address version in_msg_body
+      LDMSGADDR	//  data_cell sender_address version _89 _88
+      DROP	//  data_cell sender_address version new_owner
+      s0 s1 s3 XCHG3	//  sender_address new_owner version data_cell
+      store_data CALLDICT
+    }>ELSE<{	//  data_cell sender_address owner version op in_msg_body
+      s5 POP	//  in_msg_body sender_address owner version op
+      0x75636667 PUSHINT	//  in_msg_body sender_address owner version op _37
+      EQUAL	//  in_msg_body sender_address owner version _38
+      IF:<{	//  in_msg_body sender_address owner version
+        s0 s3 XCHG	//  version sender_address owner in_msg_body
+        LDREF	//  version sender_address owner _91 _90
+        DROP	//  version sender_address owner new_config_cell
+        s0 s3 XCHG	//  new_config_cell sender_address owner version
+        INC	//  new_config_cell sender_address owner _43
+        3 ROLL	//  sender_address owner _43 new_config_cell
+        store_data CALLDICT
+      }>ELSE<{	//  in_msg_body sender_address owner version
+        s2 s3 XCHG
+        3 BLKDROP	//  sender_address
+        70 PUSHINT	//  sender_address _45
+        THROWANY
+      }>
+    }>
+    0xf09f918d PUSHINT	//  sender_address _48
+    0 PUSHINT	//  sender_address _48 _49=0
+    DUP	//  sender_address _48 _49=0 _50=0
+    16 PUSHINT	//  sender_address _48 _49=0 _50=0 _51=16
+    NEWC	//  sender_address _48 _49=0 _50=0 _51=16 _52
+    6 STU	//  sender_address _48 _49=0 _50=0 _54
+    s0 s4 XCHG2	//  _50=0 _48 _49=0 _54 sender_address
+    STSLICER	//  _50=0 _48 _49=0 _55
+    OVER	//  _50=0 _48 _49=0 _55 _56=0
+    STGRAMS	//  _50=0 _48 _49=0 _57
+    s1 s3 XCHG	//  _49=0 _48 _50=0 _57
+    107 STU	//  _49=0 _48 _71
+    s1 s2 XCHG	//  _48 _49=0 _71
+    32 STU	//  _48 _73
+    32 STU	//  _75
+    ENDC	//  msg
+    64 PUSHINT	//  msg _77=64
+    SENDRAWMSG
+  }>
+  get_config PROC:<{
+    // 
+    load_data CALLDICT	//  _4 _5 _6
+    1 2 BLKDROP2	//  version config
+  }>
+  get_owner PROC:<{
+    // 
+    load_data CALLDICT	//  _4 _5 _6
+    2DROP	//  owner
+  }>
+}END>c
